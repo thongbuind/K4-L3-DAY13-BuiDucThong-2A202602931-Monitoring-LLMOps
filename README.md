@@ -83,6 +83,12 @@ python scripts/validate_dashboard.py
 python -m pytest -q
 ```
 
+Tạo dashboard runtime từ log sau workload (mở file HTML sinh ra trong browser rồi chụp evidence):
+
+```bash
+python scripts/render_dashboard.py
+```
+
 Baseline log chưa đạt là bình thường vì các `TODO` của CP1 chưa được làm. Ghi lại kết quả baseline vào `submission/REPORT.md` trước khi sửa.
 
 ## Lộ trình 14:00–18:00 (240 phút)

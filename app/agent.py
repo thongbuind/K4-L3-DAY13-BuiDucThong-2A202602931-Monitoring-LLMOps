@@ -2,12 +2,13 @@ from __future__ import annotations
 
 import os
 import time
+from contextlib import nullcontext
 from dataclasses import dataclass
 
 from . import metrics
 from .mock_llm import FakeLLM
 from .mock_rag import retrieve
-from .pii import hash_user_id, summarize_text
+from .pii import hash_user_id, scrub_text, summarize_text
 from .prompt_management import resolve_prompt
 from .tracing import get_langfuse_client, observe, propagate_attributes, tracing_enabled
 
@@ -38,6 +39,7 @@ class LabAgent:
         correlation_id: str,
     ) -> AgentResult:
         langfuse_client = get_langfuse_client()
+        tracing_active = tracing_enabled()
         with propagate_attributes(
             user_id=hash_user_id(user_id),
             session_id=session_id,
@@ -51,13 +53,32 @@ class LabAgent:
             },
         ):
             started = time.perf_counter()
-            docs = retrieve(message)
+            # The SDK creates observations only when credentials are configured.
+            # The null context preserves the same runnable local fallback for the lab.
+            start_observation = getattr(langfuse_client, "start_as_current_observation", None)
+            retrieval_context = (
+                start_observation(
+                    name="retrieval",
+                    as_type="retriever",
+                    input={"query": summarize_text(message)},
+                    metadata={"tool_name": "mock_rag"},
+                )
+                if tracing_active and callable(start_observation)
+                else nullcontext(None)
+            )
+            with retrieval_context as retrieval_observation:
+                docs = retrieve(message)
+                if retrieval_observation is not None:
+                    retrieval_observation.update(
+                        output={"documents": [summarize_text(doc) for doc in docs]},
+                        metadata={"doc_count": len(docs), "success": True},
+                    )
             prompt = resolve_prompt(
                 langfuse_client,
                 feature=feature,
                 docs=docs,
                 message=message,
-                enabled=tracing_enabled(),
+                enabled=tracing_active,
             )
             langfuse_client.update_current_span(
                 metadata={
@@ -71,13 +92,35 @@ class LabAgent:
                 },
                 version=prompt.version,
             )
-            # TODO (CP2): instrument retrieve() and FakeLLM.generate() as child
-            # observations. The nested generation must receive prompt, usage and cost.
-            with propagate_attributes(prompt=prompt.managed_prompt):
-                response = self.llm.generate(prompt.text)
+            generation_context = (
+                start_observation(
+                    name="llm-generation",
+                    as_type="generation",
+                    model=self.model,
+                    input={"prompt": scrub_text(prompt.text)},
+                )
+                if tracing_active and callable(start_observation)
+                else nullcontext(None)
+            )
+            with generation_context as generation_observation:
+                with propagate_attributes(prompt=prompt.managed_prompt):
+                    response = self.llm.generate(prompt.text)
+                cost_usd = self._estimate_cost(
+                    response.usage.input_tokens, response.usage.output_tokens
+                )
+                if generation_observation is not None:
+                    generation_observation.update(
+                        output={"answer": summarize_text(response.text)},
+                        model=response.model,
+                        usage_details={
+                            "input": response.usage.input_tokens,
+                            "output": response.usage.output_tokens,
+                        },
+                        cost_details={"total": cost_usd},
+                        metadata={"ttft_ms": response.ttft_ms},
+                    )
             quality_score = self._heuristic_quality(message, response.text, docs)
             latency_ms = int((time.perf_counter() - started) * 1000)
-            cost_usd = self._estimate_cost(response.usage.input_tokens, response.usage.output_tokens)
 
         metrics.record_request(
             latency_ms=latency_ms,

@@ -1,0 +1,4 @@
+Command: .venv/bin/python -m pytest -q
+
+......................                                                   [100%]
+22 passed in 1.21s

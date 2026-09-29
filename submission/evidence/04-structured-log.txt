@@ -1,0 +1,6 @@
+Two JSON events from the same request (`req-80a5be07`):
+
+```json
+{"service":"api","payload":{"message_preview":"How should alerts be designed?"},"event":"request_received","feature":"qa","session_id":"s10","correlation_id":"req-80a5be07","model":"claude-sonnet-4-5","env":"dev","user_id_hash":"105a9cef3903","level":"info","ts":"2026-09-29T16:28:55.169761Z"}
+{"service":"api","latency_ms":160,"ttft_ms":55,"tokens_in":28,"tokens_out":138,"cost_usd":0.002154,"quality_score":0.9,"tool_name":"retrieval","tool_success":true,"payload":{"answer_preview":"Starter answer. You should improve this output logic and add better quality chec..."},"event":"response_sent","feature":"qa","session_id":"s10","correlation_id":"req-80a5be07","model":"claude-sonnet-4-5","env":"dev","user_id_hash":"105a9cef3903","level":"info","ts":"2026-09-29T16:28:55.331547Z"}
+```

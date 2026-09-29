@@ -1,25 +1,25 @@
 alerts:
-  - name: TODO_alert_1
-    severity: TODO
-    condition: TODO
-    duration: TODO
+  - name: High end-to-end latency
+    severity: warning
+    condition: response_sent latency P95 > 3000 ms
+    duration: 10m
     type: symptom-based
     channel: slack
-    owner: TODO
+    owner: llm-platform-oncall
     runbook: docs/alerts.md#alert-1
-  - name: TODO_alert_2
-    severity: TODO
-    condition: TODO
-    duration: TODO
+  - name: Elevated request failure rate
+    severity: critical
+    condition: request_failed / request_received > 2 percent
+    duration: 5m
     type: symptom-based
     channel: slack
-    owner: TODO
+    owner: llm-platform-oncall
     runbook: docs/alerts.md#alert-2
-  - name: TODO_alert_3
-    severity: TODO
-    condition: TODO
-    duration: TODO
+  - name: Quality proxy degradation
+    severity: warning
+    condition: mean response_sent quality_score < 0.75
+    duration: 15m
     type: symptom-based
     channel: slack
-    owner: TODO
+    owner: llm-quality-owner
     runbook: docs/alerts.md#alert-3

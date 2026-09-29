@@ -1,0 +1,8 @@
+Synthetic PII runtime request was accepted with correlation ID `req-342af1f5`.
+The resulting structured log preview contains only redacted values:
+
+```json
+{"service":"api","payload":{"message_preview":"Synthetic test: email [REDACTED_EMAIL]; phone [REDACTED_PHONE_VN]; CCCD [REDACTE..."},"event":"request_received","feature":"qa","session_id":"session-pii-check","correlation_id":"req-342af1f5","model":"claude-sonnet-4-5","env":"dev","user_id_hash":"1725ba28e34d","level":"info","ts":"2026-09-29T16:29:09.492691Z"}
+```
+
+`python scripts/validate_logs.py` reported `Potential PII leaks detected: 0` after this request.
